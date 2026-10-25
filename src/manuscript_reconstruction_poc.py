@@ -9,6 +9,7 @@ import cv2
 import networkx as nx
 import numpy as np
 import pandas as pd
+import plotly.express as px
 import streamlit as st
 from ortools.sat.python import cp_model
 from PIL import Image, UnidentifiedImageError
@@ -21,6 +22,7 @@ IMAGE_SIZE = (256, 256)
 
 st.set_page_config(
     page_title="Historical Manuscript Reconstruction",
+    page_icon="📜",
     layout="wide"
 )
 
@@ -211,7 +213,7 @@ def compare_metadata(page_a, page_b):
     return float(score), explanation
 
 
-def compare_pair(page_a, page_b):
+def compare_pair(page_a, page_b, image_weight=0.65, text_weight=0.25, metadata_weight=0.10):
     image_score, ssim_score, histogram_score = image_similarity(
         page_a["features"],
         page_b["features"]
@@ -219,13 +221,22 @@ def compare_pair(page_a, page_b):
     text_score = compare_text(page_a["text"], page_b["text"])
     metadata_score, metadata_note = compare_metadata(page_a, page_b)
 
-    evidence_parts = [(image_score, 0.65)]
+    evidence_parts = [(image_score, image_weight)]
 
     if text_score is not None:
-        evidence_parts.append((text_score, 0.25))
+        evidence_parts.append((text_score, text_weight))
 
     if metadata_score is not None:
-        evidence_parts.append((metadata_score, 0.10))
+        evidence_parts.append((metadata_score, metadata_weight))
+
+    evidence_parts = [
+        (score, weight)
+        for score, weight in evidence_parts
+        if weight > 0
+    ]
+
+    if not evidence_parts:
+        evidence_parts = [(image_score, 1.0)]
 
     total_weight = sum(weight for _, weight in evidence_parts)
     overall = sum(
@@ -529,6 +540,11 @@ with st.sidebar:
     manuscript_title = st.text_input("Manuscript title")
     source_collection = st.text_input("Source collection")
     st.caption(f"Maximum pages per analysis: {MAX_PAGES}")
+    st.subheader("Match scoring weights")
+    image_weight_pct = st.slider("Image evidence (%)", 0, 100, 65, 5, key="image_weight_pct")
+    text_weight_pct = st.slider("Text evidence (%)", 0, 100, 25, 5, key="text_weight_pct")
+    metadata_weight_pct = st.slider("Page-number evidence (%)", 0, 100, 10, 5, key="metadata_weight_pct")
+    st.caption("Weights are normalized across the evidence available for each page pair.")
 
 st.subheader("Upload and describe pages")
 
@@ -598,11 +614,29 @@ if uploads:
             except ValueError as exc:
                 st.error(f"{upload.name}: {exc}")
 
+if pages:
+    seen_hashes = {}
+    duplicate_pairs = []
+    for page in pages:
+        digest = page["features"]["sha256"]
+        if digest in seen_hashes:
+            duplicate_pairs.append((seen_hashes[digest], page["filename"]))
+        else:
+            seen_hashes[digest] = page["filename"]
+    if duplicate_pairs:
+        st.warning(
+            "Identical image files detected: " +
+            "; ".join(f"{a} and {b}" for a, b in duplicate_pairs) +
+            ". Confirm these duplicates are intentional."
+        )
+
 if st.button("Analyze pages", type="primary", use_container_width=True):
     if not manuscript_title.strip():
         st.error("Enter a manuscript title.")
     elif len(pages) < 2:
         st.error("Upload at least two valid page images.")
+    elif image_weight_pct + text_weight_pct + metadata_weight_pct == 0:
+        st.error("At least one match scoring weight must be greater than zero.")
     else:
         known_numbers = [
             page["page_number"]
@@ -623,7 +657,13 @@ if st.button("Analyze pages", type="primary", use_container_width=True):
                     for i in range(len(pages)):
                         for j in range(i + 1, len(pages)):
                             matches.append(
-                                compare_pair(pages[i], pages[j])
+                                compare_pair(
+                                    pages[i],
+                                    pages[j],
+                                    image_weight=image_weight_pct / 100.0,
+                                    text_weight=text_weight_pct / 100.0,
+                                    metadata_weight=metadata_weight_pct / 100.0,
+                                )
                             )
 
                     matches.sort(
@@ -666,6 +706,11 @@ if st.button("Analyze pages", type="primary", use_container_width=True):
                     "status": status,
                     "objective": objective,
                     "sequence_note": sequence_note,
+                    "scoring_weights": {
+                        "image_percent": image_weight_pct,
+                        "text_percent": text_weight_pct,
+                        "metadata_percent": metadata_weight_pct,
+                    },
                     "nodes": graph.number_of_nodes(),
                     "edges": graph.number_of_edges()
                 }
@@ -753,17 +798,96 @@ if analysis:
 
     results_df = pd.DataFrame(table_rows)
 
+    if not results_df.empty:
+        chart_df = results_df.copy()
+        chart_df["Score (%)"] = chart_df["Overall"] * 100
+        chart_df["Page pair"] = chart_df["Page A"] + " ↔ " + chart_df["Page B"]
+        st.plotly_chart(
+            px.bar(
+                chart_df.head(20).sort_values("Score (%)"),
+                x="Score (%)",
+                y="Page pair",
+                orientation="h",
+                title="Top candidate page-pair scores",
+                hover_data=["Image", "Text", "Metadata", "SSIM", "Histogram"],
+            ),
+            use_container_width=True,
+        )
+
+        minimum_score_pct = st.slider(
+            "Show matches with at least this overall score (%)",
+            min_value=0,
+            max_value=100,
+            value=0,
+            step=5,
+            key="minimum_score_pct",
+        )
+        filtered_results_df = results_df[results_df["Overall"] >= minimum_score_pct / 100]
+    else:
+        filtered_results_df = results_df
+
     st.dataframe(
-        results_df,
+        filtered_results_df,
         use_container_width=True,
         hide_index=True
     )
+    st.caption(f"Showing {len(filtered_results_df)} of {len(results_df)} candidate pairs.")
 
     st.download_button(
-        "Download candidate matches as CSV",
-        data=results_df.to_csv(index=False).encode("utf-8"),
+        "Download filtered candidate matches as CSV",
+        data=filtered_results_df.to_csv(index=False).encode("utf-8"),
         file_name="candidate_matches.csv",
         mime="text/csv"
+    )
+
+    analysis_report = {
+        "manuscript_id": analysis["manuscript_id"],
+        "title": analysis["title"],
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "solver_status": analysis["status"],
+        "sequence_note": analysis["sequence_note"],
+        "objective_score": analysis["objective"],
+        "scoring_weights": analysis.get("scoring_weights", {}),
+        "pages": [
+            {
+                "filename": page["filename"],
+                "page_number": page["page_number"],
+                "transcribed_text": page["text"],
+                "sha256": page["features"]["sha256"],
+                "width": page["features"]["width"],
+                "height": page["features"]["height"],
+            }
+            for page in pages
+        ],
+        "candidate_matches": [
+            {
+                "page_a": match["page_a"],
+                "page_b": match["page_b"],
+                "overall_score": match["overall_score"],
+                "image_similarity": match["image_similarity"],
+                "ssim_similarity": match["ssim_similarity"],
+                "histogram_similarity": match["histogram_similarity"],
+                "text_similarity": match["text_similarity"],
+                "metadata_score": match["metadata_score"],
+                "evidence": match["evidence"],
+            }
+            for match in matches
+        ],
+        "proposed_sequence": [
+            {
+                "position": position + 1,
+                "filename": pages[index]["filename"],
+                "page_number": pages[index]["page_number"],
+            }
+            for position, index in enumerate(sequence)
+        ],
+        "notice": "Candidate scores and proposed sequence are suggestions, not historical confirmation.",
+    }
+    st.download_button(
+        "Download complete analysis report as JSON",
+        data=json.dumps(analysis_report, indent=2, ensure_ascii=False, default=str),
+        file_name=f"manuscript_{analysis['manuscript_id']}_report.json",
+        mime="application/json",
     )
 
     st.subheader("Evidence for a candidate match")
@@ -1001,6 +1125,34 @@ try:
                     )
                 else:
                     st.write("No candidate matches were saved.")
+
+        st.warning("Deleting a saved analysis permanently removes its pages, matches, and proposed sequence.")
+        confirm_delete = st.checkbox(
+            f"I understand that deleting record #{int(record_id)} is permanent.",
+            key=f"confirm_delete_{int(record_id)}",
+        )
+        if st.button(
+            "Delete selected saved analysis",
+            disabled=not confirm_delete,
+            key=f"delete_record_{int(record_id)}",
+        ):
+            with connect_db() as con:
+                con.execute(
+                    "DELETE FROM Manuscripts WHERE manuscript_id = ?",
+                    (int(record_id),)
+                )
+            if st.session_state.get("latest_analysis", {}).get("manuscript_id") == int(record_id):
+                del st.session_state["latest_analysis"]
+            st.success(f"Deleted saved analysis #{int(record_id)}.")
+            st.rerun()
+
+        if DB_PATH.exists():
+            st.download_button(
+                "Download SQLite database backup",
+                data=DB_PATH.read_bytes(),
+                file_name="manuscript_poc_backup.db",
+                mime="application/x-sqlite3",
+            )
 
 except sqlite3.Error as exc:
     st.error(f"Could not load analysis history: {exc}")
