@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Manuscript Fragments{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div><p class="eyebrow">COLLECTION WORKSPACE</p>
+    <h1>Manuscript fragments</h1>
+    <p class="muted">Store, find, and review digitized manuscript pages.</p></div>
+  <a class="button" href="{{ url_for('fragments.new_fragment') }}">Add a fragment</a>
+</section>
+<form class="search-form" method="get" action="{{ url_for('fragments.index') }}">
+  <label class="sr-only" for="q">Search fragments</label>
+  <input id="q" name="q" type="search" value="{{ query }}"
+         placeholder="Search by title, identifier, or page number">
+  <button type="submit">Search</button>
+  {% if query %}<a class="clear-link" href="{{ url_for('fragments.index') }}">Clear</a>{% endif %}
+</form>
+{% if fragments %}
+  <div class="fragment-grid">
+  {% for fragment in fragments %}
+    <article class="fragment-card">
+      <a class="image-link" href="{{ url_for('fragments.fragment_detail', fragment_id=fragment.id) }}">
+        <img src="{{ url_for('fragments.uploaded_file', filename=fragment.image_filename) }}"
+             alt="Manuscript page for {{ fragment.title }}">
+      </a>
+      <div class="card-body">
+        <p class="eyebrow">{{ fragment.fragment_identifier }}</p>
+        <h2><a href="{{ url_for('fragments.fragment_detail', fragment_id=fragment.id) }}">{{ fragment.title }}</a></h2>
+        <p class="muted">Page: {{ fragment.page_number or "Not provided" }}</p>
+        <p>{{ fragment.description or "No description provided." }}</p>
+      </div>
+    </article>
+  {% endfor %}
+  </div>
+{% else %}
+  <div class="empty-state">
+    <h2>No manuscript fragments found</h2>
+    <p>{% if query %}Try another search term.{% else %}Add your first manuscript page to begin.{% endif %}</p>
+    <a class="button" href="{{ url_for('fragments.new_fragment') }}">Add manuscript fragment</a>
+  </div>
+{% endif %}
+{% endblock %}
