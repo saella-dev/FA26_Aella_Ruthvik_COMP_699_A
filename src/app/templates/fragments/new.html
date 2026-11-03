@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Add Manuscript Fragment{% endblock %}
+{% block content %}
+<div class="narrow">
+  <p class="eyebrow">FRAGMENT MANAGEMENT</p>
+  <h1>Add manuscript fragment</h1>
+  <p class="muted">Enter the available information. Unknown details can be left blank.</p>
+  <form class="panel form-stack" method="post"
+        action="{{ url_for('fragments.new_fragment') }}" enctype="multipart/form-data">
+    <label>Manuscript title <span class="required">*</span>
+      <input name="title" required maxlength="200" value="{{ request.form.get('title', '') }}">
+    </label>
+    <label>Fragment identifier <span class="required">*</span>
+      <input name="fragment_identifier" required maxlength="100"
+             placeholder="Example: MS-001-A" value="{{ request.form.get('fragment_identifier', '') }}">
+    </label>
+    <label>Page number
+      <input name="page_number" maxlength="30" placeholder="Example: 12"
+             value="{{ request.form.get('page_number', '') }}">
+    </label>
+    <label>Manuscript reference
+      <input name="manuscript_reference" maxlength="200"
+             placeholder="Collection or catalogue reference"
+             value="{{ request.form.get('manuscript_reference', '') }}">
+    </label>
+    <label>Description
+      <textarea name="description" rows="3" maxlength="2000">{{ request.form.get('description', '') }}</textarea>
+    </label>
+    <label>Transcribed text
+      <textarea name="transcription" rows="5">{{ request.form.get('transcription', '') }}</textarea>
+    </label>
+    <label>Manuscript page image <span class="required">*</span>
+      <input type="file" name="image" accept=".png,.jpg,.jpeg,.tif,.tiff,.webp" required>
+      <small>Supported: PNG, JPG, JPEG, TIF, TIFF, WEBP. Maximum size: 10 MB.</small>
+    </label>
+    <div class="form-actions">
+      <button type="submit">Save fragment</button>
+      <a class="cancel-link" href="{{ url_for('fragments.index') }}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

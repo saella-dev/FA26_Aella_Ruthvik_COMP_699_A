@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ fragment.title }}{% endblock %}
+{% block content %}
+<a class="back-link" href="{{ url_for('fragments.index') }}">← Back to fragments</a>
+<div class="detail-layout">
+  <div class="detail-image">
+    <img src="{{ url_for('fragments.uploaded_file', filename=fragment.image_filename) }}"
+         alt="Manuscript page for {{ fragment.title }}">
+  </div>
+  <section class="detail-info">
+    <p class="eyebrow">{{ fragment.fragment_identifier }}</p>
+    <h1>{{ fragment.title }}</h1>
+    <dl>
+      <dt>Page number</dt><dd>{{ fragment.page_number or "Not provided" }}</dd>
+      <dt>Manuscript reference</dt><dd>{{ fragment.manuscript_reference or "Not provided" }}</dd>
+      <dt>Description</dt><dd>{{ fragment.description or "Not provided" }}</dd>
+      <dt>Transcribed text</dt><dd class="transcription">{{ fragment.transcription or "Not provided" }}</dd>
+      <dt>Added</dt><dd>{{ fragment.created_at }}</dd>
+    </dl>
+  </section>
+</div>
+{% endblock %}
