@@ -2,126 +2,114 @@
 
 ## Project Description
 
-I am developing a Python application that helps researchers compare incomplete or separated historical manuscript pages. The application uses image similarity, text similarity, and available page metadata to suggest possible page matches and page sequences.
+This Python Flask application helps researchers and archivists organize and examine incomplete or separated historical manuscript pages.
 
-The system displays matching scores and supporting evidence so researchers can review the results. It does not guarantee the original page order or attempt to recreate missing historical content.
+Users can upload manuscript images, enter page information, save records, and search for manuscript fragments. Future development will compare text, images, and metadata to suggest possible page sequences.
 
 ## Technologies Used
 
 - Python
-- Streamlit
-- Pandas
-- NumPy
-- Pillow
-- OpenCV
-- scikit-image
-- RapidFuzz
-- NetworkX
-- OR-Tools
-- SQLite
+- Flask
+- HTML5 and CSS3
+- SQLite3
+- pytest
 
-## Features
+Planned analysis libraries: OpenCV, RapidFuzz, NumPy, Pandas, NetworkX, and OR-Tools.
 
-- Upload multiple manuscript page images.
-- Enter page numbers and transcribed text.
-- Compare page images using visual similarity.
-- Compare text using approximate text matching.
-- Calculate combined matching scores.
-- Represent candidate page relationships using a graph.
-- Generate proposed page sequences using ordering constraints.
-- Display ranked candidate matches and their supporting evidence.
-- Store manuscript records and analysis results in SQLite.
-- Export candidate matching results as a CSV file.
-- View previously saved analysis records.
+## Project Structure
 
-## Requirements
+| File or Folder | Description |
+|---|---|
+| `app/` | Contains the main Flask application files. |
+| `app/__init__.py` | Creates and configures the Flask application. |
+| `app/database.py` | Connects to SQLite and creates the database table. |
+| `app/fragments.py` | Handles adding, viewing, and searching manuscript fragments. |
+| `app/templates/` | Contains the HTML templates. |
+| `app/templates/base.html` | Provides the common page layout and navigation. |
+| `app/templates/fragments/index.html` | Displays manuscript fragments and search results. |
+| `app/templates/fragments/new.html` | Contains the form for adding a manuscript fragment. |
+| `app/templates/fragments/detail.html` | Displays the details of a selected fragment. |
+| `app/static/css/style.css` | Contains the styles for the application pages. |
+| `tests/` | Contains automated tests. |
+| `tests/conftest.py` | Sets up the Flask test application and test database. |
+| `tests/test_fragments.py` | Tests the manuscript fragment functions. |
+| `docs/step_2/week_2/` | Stores Week 2 implementation notes and documentation. |
+| `config.py` | Contains application settings and allowed image formats. |
+| `run.py` | Starts the Flask application. |
+| `requirements.txt` | Lists the Python packages required to run the project. |
+| `README.md` | Provides project information and setup instructions. |
+| `.gitignore` | Lists files and folders that Git should ignore. |
+| `instance/` | Created when the application runs; stores the local database and uploaded images. |
 
-I use Python 3.10 or a compatible newer version. I recommend using a virtual environment to keep the project dependencies separate from other Python projects.
+## Installation and Setup
 
-## Installation
+1. Clone the repository:
 
-First, I create and activate a virtual environment.
-
-On Windows:
-
+```bash
+git clone YOUR_GITHUB_REPOSITORY_URL
 ```
+
+2. Open the project folder in VS Code.
+
+3. Create a virtual environment:
+
+```bash
 python -m venv .venv
-.venv\Scripts\activate
 ```
 
-On macOS or Linux:
+4. Activate it on Windows:
 
-```
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-I install the required packages with the following command:
-
-```
-python -m pip install streamlit pandas numpy Pillow opencv-python-headless scikit-image rapidfuzz networkx ortools
+```powershell
+.venv\\Scripts\\activate
 ```
 
-## Running the Application
+5. Install dependencies:
 
-I save the main application as:
-
-`manuscript_reconstruction_poc.py`
-
-I start the application using:
-
-```
-python -m streamlit run manuscript_reconstruction_poc.py
+```bash
+pip install -r requirements.txt
 ```
 
-Streamlit opens the application in a browser. If it does not open automatically, I can visit:
+6. Start the application:
 
-http://localhost:8501
+```bash
+python run.py
+```
 
-## How I Use the Application
+7. Open this address in your browser:
 
-1. I enter a manuscript title and source collection.
-2. I upload at least two manuscript page images.
-3. I enter known page numbers and available transcribed text.
-4. I run the analysis.
-5. I review the proposed page sequence and ranked candidate matches.
-6. I inspect the evidence scores for individual page pairs.
-7. I download the candidate matching results as a CSV file.
+```text
+http://127.0.0.1:5000/
+```
 
-## Data Storage
+## Current Implemented Features
 
-The application creates a local SQLite database named `manuscript_poc.db`. It stores manuscript records, page information, extracted features, candidate matches, and proposed sequences.
+- **FR-13:** Upload manuscript page images.
+- **FR-14:** Add manuscript title, identifier, and description.
+- **FR-15:** Enter page numbers and manuscript references.
+- **FR-19:** View uploaded manuscript images and details.
+- **FR-20:** Search fragments by title, identifier, and page number.
 
-The database is generated automatically when the application starts.
+## Current Development Stage
 
-## Data Sources
+The initial Flask application and SQLite database have been created. Manuscript image uploading, information storage, detail viewing, and fragment searching have been manually checked in the browser.
 
-I plan to evaluate the application using publicly accessible digitized manuscript collections from:
+Automated tests have been added. Run them using:
 
-- British Library: [https://www.bl.uk/manuscripts/](<https://www.bl.uk/manuscripts/>)
-- Digital Bodleian: [https://digital.bodleian.ox.ac.uk/](<https://digital.bodleian.ox.ac.uk/>)
-- Internet Archive: [https://archive.org/](<https://archive.org/>)
+```bash
+python -m pytest -v
+```
 
-I will check the availability and reuse conditions of selected materials before including them in my tests.
+Check the terminal output to confirm the test results.
 
-## Testing and Evaluation
+## Future Development
 
-I will test the application using manuscript pages with known original sequences. I will compare the proposed results with those known sequences and measure whether correct page matches appear among the highest-ranked candidates.
+- User registration and login.
+- Editing and deleting manuscript records.
+- Text similarity comparison.
+- Image comparison.
+- Metadata analysis.
+- Graph-based fragment relationships.
+- Candidate page sequence generation.
+- Evidence scoring and result display.
 
-I will also test image processing, text matching, database operations, ordering constraints, and application response time.
 
-My initial performance target is to process 50 page images and display results within 30 seconds on my development laptop. I will record actual measurements during testing rather than assume that the target has been achieved.
-
-## Limitations
-
-- The application depends on the quality of the available images and transcribed text.
-- Missing metadata may reduce the quality of matching results.
-- Similarity scores do not prove that two pages originally appeared together.
-- Proposed sequences are suggestions and require human review.
-- The initial version does not include advanced handwriting recognition or automatic reconstruction of missing text.
-
-## Author
-
-Sai Ruthvik Reddy Aella
-
-FA26 - COMP-699-A - PROFESSIONAL SEMINAR
