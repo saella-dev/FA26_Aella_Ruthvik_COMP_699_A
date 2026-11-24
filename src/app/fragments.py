@@ -21,11 +21,7 @@ from .matching import similarity
 
 fragments_bp = Blueprint("fragments", __name__)
 
-
-# ---------------------------------------------------------
 # File upload helpers
-# ---------------------------------------------------------
-
 def allowed_file(filename):
     """Check whether the uploaded file has an allowed extension."""
     return (
@@ -52,10 +48,7 @@ def save_uploaded_image(image):
 
     return filename
 
-
-# ---------------------------------------------------------
 # Fragment database helpers
-# ---------------------------------------------------------
 
 def _fragment_or_404(fragment_id):
     """Retrieve a fragment or return HTTP 404."""
@@ -117,10 +110,8 @@ def _validate(form, image=None, required_image=False):
 
     return None
 
-
-# ---------------------------------------------------------
 # Dashboard and search
-# ---------------------------------------------------------
+
 
 @fragments_bp.route("/")
 def index():
@@ -187,9 +178,8 @@ def index():
     )
 
 
-# ---------------------------------------------------------
 # Add a new fragment
-# ---------------------------------------------------------
+
 
 @fragments_bp.route("/fragments/new", methods=["GET", "POST"])
 def new_fragment():
@@ -275,9 +265,7 @@ def new_fragment():
     return redirect(url_for("fragments.index"))
 
 
-# ---------------------------------------------------------
 # Fragment details
-# ---------------------------------------------------------
 
 @fragments_bp.route("/fragments/<int:fragment_id>")
 def fragment_detail(fragment_id):
@@ -307,10 +295,8 @@ def fragment_detail(fragment_id):
         matches=matches
     )
 
-
-# ---------------------------------------------------------
 # Edit an existing fragment
-# ---------------------------------------------------------
+
 
 @fragments_bp.route(
     "/fragments/<int:fragment_id>/edit",
@@ -433,10 +419,8 @@ def edit_fragment(fragment_id):
         )
     )
 
-
-# ---------------------------------------------------------
 # Delete a fragment
-# ---------------------------------------------------------
+
 
 @fragments_bp.route(
     "/fragments/<int:fragment_id>/delete",
@@ -471,9 +455,7 @@ def delete_fragment(fragment_id):
     return redirect(url_for("fragments.index"))
 
 
-# ---------------------------------------------------------
 # Candidate matching
-# ---------------------------------------------------------
 
 @fragments_bp.route(
     "/fragments/<int:fragment_id>/match",
@@ -591,10 +573,8 @@ def find_matches(fragment_id):
         )
     )
 
-
-# ---------------------------------------------------------
 # Uploaded image access
-# ---------------------------------------------------------
+
 
 @fragments_bp.route("/uploads/<path:filename>")
 def uploaded_file(filename):
