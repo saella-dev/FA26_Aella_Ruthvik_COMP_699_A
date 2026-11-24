@@ -1,41 +1,373 @@
 {% extends "base.html" %}
+
 {% block title %}Manuscript Fragments{% endblock %}
+
 {% block content %}
+
+<!-- Dashboard Heading -->
 <section class="page-heading">
-  <div><p class="eyebrow">COLLECTION WORKSPACE</p>
-    <h1>Manuscript fragments</h1>
-    <p class="muted">Store, find, and review digitized manuscript pages.</p></div>
-  <a class="button" href="{{ url_for('fragments.new_fragment') }}">Add a fragment</a>
+
+    <div>
+        <p class="eyebrow">HISTORICAL MANUSCRIPT WORKSPACE</p>
+
+        <h1>Manuscript Fragments</h1>
+
+        <p class="muted">
+            Organize, search, compare, and review digitized historical manuscript pages.
+        </p>
+    </div>
+
+    <div class="actions">
+
+        <a
+            class="button secondary"
+            href="{{ url_for('fragments.export_csv') }}"
+        >
+            Export CSV
+        </a>
+
+        <a
+            class="button"
+            href="{{ url_for('fragments.new_fragment') }}"
+        >
+            + Add Fragment
+        </a>
+
+    </div>
+
 </section>
-<form class="search-form" method="get" action="{{ url_for('fragments.index') }}">
-  <label class="sr-only" for="q">Search fragments</label>
-  <input id="q" name="q" type="search" value="{{ query }}"
-         placeholder="Search by title, identifier, or page number">
-  <button type="submit">Search</button>
-  {% if query %}<a class="clear-link" href="{{ url_for('fragments.index') }}">Clear</a>{% endif %}
-</form>
-{% if fragments %}
-  <div class="fragment-grid">
-  {% for fragment in fragments %}
-    <article class="fragment-card">
-      <a class="image-link" href="{{ url_for('fragments.fragment_detail', fragment_id=fragment.id) }}">
-        <img src="{{ url_for('fragments.uploaded_file', filename=fragment.image_filename) }}"
-             alt="Manuscript page for {{ fragment.title }}">
-      </a>
-      <div class="card-body">
-        <p class="eyebrow">{{ fragment.fragment_identifier }}</p>
-        <h2><a href="{{ url_for('fragments.fragment_detail', fragment_id=fragment.id) }}">{{ fragment.title }}</a></h2>
-        <p class="muted">Page: {{ fragment.page_number or "Not provided" }}</p>
-        <p>{{ fragment.description or "No description provided." }}</p>
-      </div>
-    </article>
-  {% endfor %}
-  </div>
-{% else %}
-  <div class="empty-state">
-    <h2>No manuscript fragments found</h2>
-    <p>{% if query %}Try another search term.{% else %}Add your first manuscript page to begin.{% endif %}</p>
-    <a class="button" href="{{ url_for('fragments.new_fragment') }}">Add manuscript fragment</a>
-  </div>
+
+
+<!-- Dashboard Statistics -->
+<section class="stats">
+
+    <div class="stat-card">
+        <strong>{{ stats.get('complete', 0) }}</strong>
+        <span>Complete</span>
+    </div>
+
+    <div class="stat-card">
+        <strong>{{ stats.get('paired', 0) }}</strong>
+        <span>Paired</span>
+    </div>
+
+    <div class="stat-card">
+        <strong>{{ stats.get('orphan', 0) }}</strong>
+        <span>Orphan</span>
+    </div>
+
+    <div class="stat-card">
+        <strong>{{ fragments|length }}</strong>
+        <span>Records Shown</span>
+    </div>
+
+</section>
+
+
+<!-- Search and Category Filtering -->
+<section class="panel search-panel">
+
+    <form
+        class="search-form"
+        method="get"
+        action="{{ url_for('fragments.index') }}"
+    >
+
+        <div class="search-input-group">
+
+            <label class="sr-only" for="q">
+                Search manuscript fragments
+            </label>
+
+            <input
+                id="q"
+                name="q"
+                type="search"
+                value="{{ query }}"
+                placeholder="Search title, identifier, page, collection, or transcription"
+            >
+
+        </div>
+
+
+        <div class="filter-group">
+
+            <label class="sr-only" for="type">
+                Filter by fragment category
+            </label>
+
+            <select id="type" name="type">
+
+                <option value=""
+                    {% if not kind %}selected{% endif %}>
+                    All Categories
+                </option>
+
+                <option value="orphan"
+                    {% if kind == 'orphan' %}selected{% endif %}>
+                    Orphan
+                </option>
+
+                <option value="paired"
+                    {% if kind == 'paired' %}selected{% endif %}>
+                    Paired
+                </option>
+
+                <option value="complete"
+                    {% if kind == 'complete' %}selected{% endif %}>
+                    Complete
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <button type="submit">
+            Search
+        </button>
+
+
+        {% if query or kind %}
+
+            <a
+                class="clear-link"
+                href="{{ url_for('fragments.index') }}"
+            >
+                Clear Filters
+            </a>
+
+        {% endif %}
+
+    </form>
+
+</section>
+
+
+<!-- Active Search Information -->
+{% if query or kind %}
+
+    <div class="search-summary">
+
+        <p class="muted">
+
+            Showing results
+
+            {% if query %}
+                for <strong>{{ query }}</strong>
+            {% endif %}
+
+            {% if kind %}
+                in category <strong>{{ kind|capitalize }}</strong>
+            {% endif %}.
+
+        </p>
+
+    </div>
+
 {% endif %}
+
+
+<!-- Fragment Collection -->
+<section class="collection-section">
+
+    {% if fragments %}
+
+        <div class="section-heading">
+
+            <div>
+                <h2>Fragment Collection</h2>
+
+                <p class="muted">
+                    Select a manuscript record to view its details and candidate matches.
+                </p>
+            </div>
+
+        </div>
+
+
+        <div class="fragment-grid">
+
+            {% for fragment in fragments %}
+
+                <article class="fragment-card">
+
+                    <!-- Manuscript Image -->
+                    <a
+                        class="image-link"
+                        href="{{ url_for(
+                            'fragments.fragment_detail',
+                            fragment_id=fragment.id
+                        ) }}"
+                    >
+
+                        <img
+                            src="{{ url_for(
+                                'fragments.uploaded_file',
+                                filename=fragment.image_filename
+                            ) }}"
+                            alt="Manuscript image for {{ fragment.title }}"
+                            loading="lazy"
+                        >
+
+                    </a>
+
+
+                    <!-- Fragment Information -->
+                    <div class="card-body">
+
+                        <!-- Category -->
+                        <span class="tag {{ fragment.fragment_type }}">
+
+                            {{ fragment.fragment_type|capitalize }}
+
+                        </span>
+
+
+                        <!-- Identifier -->
+                        <p class="eyebrow">
+
+                            {{ fragment.fragment_identifier }}
+
+                        </p>
+
+
+                        <!-- Title -->
+                        <h2>
+
+                            <a
+                                href="{{ url_for(
+                                    'fragments.fragment_detail',
+                                    fragment_id=fragment.id
+                                ) }}"
+                            >
+
+                                {{ fragment.title }}
+
+                            </a>
+
+                        </h2>
+
+
+                        <!-- Metadata -->
+                        <div class="fragment-metadata">
+
+                            <p class="muted">
+
+                                <strong>Page:</strong>
+
+                                {{ fragment.page_number or "Not provided" }}
+
+                            </p>
+
+
+                            <p class="muted">
+
+                                <strong>Collection:</strong>
+
+                                {{ fragment.collection_name or "Not specified" }}
+
+                            </p>
+
+
+                            <p class="muted">
+
+                                <strong>Reference:</strong>
+
+                                {{ fragment.manuscript_reference or "Not provided" }}
+
+                            </p>
+
+                        </div>
+
+
+                        <!-- Description -->
+                        <p class="fragment-description">
+
+                            {{ fragment.description or "No description provided." }}
+
+                        </p>
+
+
+                        <!-- Actions -->
+                        <div class="card-actions">
+
+                            <a
+                                class="button secondary"
+                                href="{{ url_for(
+                                    'fragments.fragment_detail',
+                                    fragment_id=fragment.id
+                                ) }}"
+                            >
+
+                                View Details
+
+                            </a>
+
+                            <a
+                                class="text-link"
+                                href="{{ url_for(
+                                    'fragments.edit_fragment',
+                                    fragment_id=fragment.id
+                                ) }}"
+                            >
+
+                                Edit
+
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </article>
+
+            {% endfor %}
+
+        </div>
+
+
+    {% else %}
+
+        <!-- Empty State -->
+        <div class="empty-state">
+
+            <h2>No Manuscript Fragments Found</h2>
+
+            {% if query or kind %}
+
+                <p>
+                    No records match your current search or category filter.
+                    Try another search term or clear the filters.
+                </p>
+
+                <a
+                    class="button secondary"
+                    href="{{ url_for('fragments.index') }}"
+                >
+                    Clear Filters
+                </a>
+
+            {% else %}
+
+                <p>
+                    Your manuscript collection is currently empty.
+                    Add your first manuscript fragment to begin.
+                </p>
+
+                <a
+                    class="button"
+                    href="{{ url_for('fragments.new_fragment') }}"
+                >
+                    Add First Fragment
+                </a>
+
+            {% endif %}
+
+        </div>
+
+    {% endif %}
+
+</section>
+
 {% endblock %}
