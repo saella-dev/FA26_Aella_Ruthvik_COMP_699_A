@@ -590,7 +590,7 @@ Open PowerShell or the VS Code terminal.
 Run:
 
 ```powershell
-git clone YOUR_GITHUB_REPOSITORY_URL
+git clone https://github.com/saella-dev/FA26_Aella_Ruthvik_COMP_699_A
 ```
 
 Move into the project directory:
